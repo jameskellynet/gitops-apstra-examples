@@ -1,98 +1,308 @@
-# Look up details of a preconfigured logical device using its name. We'll use
-# data discovered in this lookup in the resource creation below.
-data "apstra_logical_device" "lab_guide_switch" {
-  name = "slicer-7x10-1"
-}
-
-# Locals are variables available for use only within the project directory.
-# They're not available for use across Terraform Module boundaries. Here we
-# use "single_homed" and "dual_homed" as shorthand for Apstra Logical Device
-# IDs we need when creating Generic Systems (servers) in our Rack Types.
 locals {
-  servers = {
-    single_homed = "AOS-1x10-1"
-    dual_homed   = "AOS-2x10-1"
+  leaf_definition_16x400_16x200 = {
+    logical_device_id   = apstra_logical_device.AI-Leaf_16x400_16x200.id
+    spine_link_count    = 1
+    spine_link_speed    = "400G"
+  }
+  leaf_definition_16_16x400 = {
+    logical_device_id   = apstra_logical_device.AI-Leaf_16_16x400.id
+    spine_link_count    = 1
+    spine_link_speed    = "400G"
+  }
+  leaf_definition_16x400_32x200 = {
+    logical_device_id   = apstra_logical_device.AI-Leaf_16x400_32x200.id
+    spine_link_count    = 1
+    spine_link_speed    = "400G"
+  }
+  leaf_definition_16x400_32x200_2_spines = {
+    logical_device_id   = apstra_logical_device.AI-Leaf_16x400_32x200.id
+    spine_link_count    = 2
+    spine_link_speed    = "400G"
+  }
+  leaf_definition_32_32x400 = {
+    logical_device_id   = apstra_logical_device.AI-Leaf_32_32x400.id
+    spine_link_count    = 1
+    spine_link_speed    = "400G"
   }
 }
-data "apstra_logical_device" "lab_guide_servers" {
-  for_each = local.servers
-  name = each.value
-}
 
-resource "apstra_rack_type" "lab_guide_single" {
-  name                       = "apstra-single"
+resource "apstra_rack_type" "AI_16xA100" {
+  name                       = "AI 16xA100"
+  description = "AI Rail-optimized A100 Rack Group of 16 Servers"
   fabric_connectivity_design = "l3clos"
-  leaf_switches = {
-    apstra-single = {
-      logical_device_id = data.apstra_logical_device.lab_guide_switch.id
-      spine_link_count  = 1
-      spine_link_speed  = "10G"
-    }
+  leaf_switches = { 
+    Leaf1 = local.leaf_definition_16x400_16x200,
+    Leaf2 = local.leaf_definition_16x400_16x200,
+    Leaf3 = local.leaf_definition_16x400_16x200,
+    Leaf4 = local.leaf_definition_16x400_16x200,
+    Leaf5 = local.leaf_definition_16x400_16x200,
+    Leaf6 = local.leaf_definition_16x400_16x200,
+    Leaf7 = local.leaf_definition_16x400_16x200,
+    Leaf8 = local.leaf_definition_16x400_16x200,
   }
   generic_systems = {
-    single-server = {
-      count             = 1
-      logical_device_id = data.apstra_logical_device.lab_guide_servers["single_homed"].id
+    DGX-A100 = {
+      count             = 16
+      logical_device_id = apstra_logical_device.AI-Server-A100_8x200G.id
       links = {
-        single-link = {
-          target_switch_name = "apstra-single"
-          links_per_switch   = 1
-          speed              = "10G"
-        }
+        link1 = {
+          speed              = "200G"
+          target_switch_name = "Leaf1"  
+        },
+        link2 = {
+          speed              = "200G"
+          target_switch_name = "Leaf2"  
+        },
+        link3 = {
+          speed              = "200G"
+          target_switch_name = "Leaf3"  
+        },
+        link4 = {
+          speed              = "200G"
+          target_switch_name = "Leaf4"  
+        },
+        link5 = {
+          speed              = "200G"
+          target_switch_name = "Leaf5"  
+        },
+        link6 = {
+          speed              = "200G"
+          target_switch_name = "Leaf6"  
+        },
+        link7 = {
+          speed              = "200G"
+          target_switch_name = "Leaf7"  
+        },
+        link8 = {
+          speed              = "200G"
+          target_switch_name = "Leaf8"  
+        },
       }
     }
   }
 }
 
-resource "apstra_rack_type" "lab_guide_esi" {
-  name                       = "apstra-esi"
+
+resource "apstra_rack_type" "AI_16xH100" {
+  name                       = "AI 16xH100"
+  description = "AI Rail-optimized H100 Rack Group of 16 Servers"
   fabric_connectivity_design = "l3clos"
   leaf_switches = {
-    apstra-esi = {
-      logical_device_id   = data.apstra_logical_device.lab_guide_switch.id
-      spine_link_count    = 1
-      spine_link_speed    = "10G"
-      redundancy_protocol = "esi"
-    }
+    Leaf1 = local.leaf_definition_16_16x400,
+    Leaf2 = local.leaf_definition_16_16x400,
+    Leaf3 = local.leaf_definition_16_16x400,
+    Leaf4 = local.leaf_definition_16_16x400,
+    Leaf5 = local.leaf_definition_16_16x400,
+    Leaf6 = local.leaf_definition_16_16x400,
+    Leaf7 = local.leaf_definition_16_16x400,
+    Leaf8 = local.leaf_definition_16_16x400,
   }
   generic_systems = {
-    dual-server = {
-      count             = 1
-      logical_device_id = data.apstra_logical_device.lab_guide_servers["dual_homed"].id
+    DGX-H100 = {
+      count             = 16
+      logical_device_id = apstra_logical_device.AI-Server-H100_8x400G.id
       links = {
-        single-link = {
-          target_switch_name = "apstra-esi"
-          links_per_switch   = 1
-          speed              = "10G"
-          lag_mode           = "lacp_active"
-        }
-      }
-    }
-    single-server-1 = {
-      count             = 1
-      logical_device_id = data.apstra_logical_device.lab_guide_servers["single_homed"].id
-      links = {
-        single-link = {
-          target_switch_name = "apstra-esi"
-          links_per_switch   = 1
-          speed              = "10G"
-          switch_peer        = "first"
-        }
-      }
-    }
-    single-server-2 = {
-      count             = 1
-      logical_device_id = data.apstra_logical_device.lab_guide_servers["single_homed"].id
-      links = {
-        single-link = {
-          target_switch_name = "apstra-esi"
-          links_per_switch   = 1
-          speed              = "10G"
-          switch_peer        = "second"
-        }
+        link1 = {
+          speed              = "400G"
+          target_switch_name = "Leaf1"  
+        },
+        link2 = {
+          speed              = "400G"
+          target_switch_name = "Leaf2"  
+        },
+        link3 = {
+          speed              = "400G"
+          target_switch_name = "Leaf3"  
+        },
+        link4 = {
+          speed              = "400G"
+          target_switch_name = "Leaf4"  
+        },
+        link5 = {
+          speed              = "400G"
+          target_switch_name = "Leaf5"  
+        },
+        link6 = {
+          speed              = "400G"
+          target_switch_name = "Leaf6"  
+        },
+        link7 = {
+          speed              = "400G"
+          target_switch_name = "Leaf7"  
+        },
+        link8 = {
+          speed              = "400G"
+          target_switch_name = "Leaf8"  
+        },
       }
     }
   }
 }
 
+resource "apstra_rack_type" "AI_32xA100" {
+  name                       = "AI 32xA100"
+  description = "AI Rail-optimized A100 Rack Group of 32 Servers"
+  fabric_connectivity_design = "l3clos"
+  leaf_switches = {
+    Leaf1 = local.leaf_definition_16x400_32x200,
+    Leaf2 = local.leaf_definition_16x400_32x200,
+    Leaf3 = local.leaf_definition_16x400_32x200,
+    Leaf4 = local.leaf_definition_16x400_32x200,
+    Leaf5 = local.leaf_definition_16x400_32x200,
+    Leaf6 = local.leaf_definition_16x400_32x200,
+    Leaf7 = local.leaf_definition_16x400_32x200,
+    Leaf8 = local.leaf_definition_16x400_32x200,
+  }
+  generic_systems = {
+    DGX-A100 = {
+      count             = 32
+      logical_device_id = apstra_logical_device.AI-Server-A100_8x200G.id
+      links = {
+        link1 = {
+          speed              = "200G"
+          target_switch_name = "Leaf1"  
+        },
+        link2 = {
+          speed              = "200G"
+          target_switch_name = "Leaf2"  
+        },
+        link3 = {
+          speed              = "200G"
+          target_switch_name = "Leaf3"  
+        },
+        link4 = {
+          speed              = "200G"
+          target_switch_name = "Leaf4"  
+        },
+        link5 = {
+          speed              = "200G"
+          target_switch_name = "Leaf5"  
+        },
+        link6 = {
+          speed              = "200G"
+          target_switch_name = "Leaf6"  
+        },
+        link7 = {
+          speed              = "200G"
+          target_switch_name = "Leaf7"  
+        },
+        link8 = {
+          speed              = "200G"
+          target_switch_name = "Leaf8"  
+        },
+      }
+    }
+  }
+}
 
+resource "apstra_rack_type" "AI_32xA100_2_spine_uplinks" {
+  name                       = "AI 32xA100 2sp"
+  description = "AI Rail-optimized A100 Rack Group of 32 Servers (2 spine uplinks per leaf)"
+  fabric_connectivity_design = "l3clos"
+  leaf_switches = {
+    Leaf1 = local.leaf_definition_16x400_32x200_2_spines,
+    Leaf2 = local.leaf_definition_16x400_32x200_2_spines,
+    Leaf3 = local.leaf_definition_16x400_32x200_2_spines,
+    Leaf4 = local.leaf_definition_16x400_32x200_2_spines,
+    Leaf5 = local.leaf_definition_16x400_32x200_2_spines,
+    Leaf6 = local.leaf_definition_16x400_32x200_2_spines,
+    Leaf7 = local.leaf_definition_16x400_32x200_2_spines,
+    Leaf8 = local.leaf_definition_16x400_32x200_2_spines,
+  }
+  generic_systems = {
+    DGX-A100 = {
+      count             = 32
+      logical_device_id = apstra_logical_device.AI-Server-A100_8x200G.id
+      links = {
+        link1 = {
+          speed              = "200G"
+          target_switch_name = "Leaf1"  
+        },
+        link2 = {
+          speed              = "200G"
+          target_switch_name = "Leaf2"  
+        },
+        link3 = {
+          speed              = "200G"
+          target_switch_name = "Leaf3"  
+        },
+        link4 = {
+          speed              = "200G"
+          target_switch_name = "Leaf4"  
+        },
+        link5 = {
+          speed              = "200G"
+          target_switch_name = "Leaf5"  
+        },
+        link6 = {
+          speed              = "200G"
+          target_switch_name = "Leaf6"  
+        },
+        link7 = {
+          speed              = "200G"
+          target_switch_name = "Leaf7"  
+        },
+        link8 = {
+          speed              = "200G"
+          target_switch_name = "Leaf8"  
+        },
+      }
+    }
+  }
+}
+
+resource "apstra_rack_type" "AI_32xH100" {
+  name                       = "AI 32xH100"
+  description = "AI Rail-optimized H100 Rack Group of 32 Servers"
+  fabric_connectivity_design = "l3clos"
+  leaf_switches = {
+    Leaf1 = local.leaf_definition_32_32x400,
+    Leaf2 = local.leaf_definition_32_32x400,
+    Leaf3 = local.leaf_definition_32_32x400,
+    Leaf4 = local.leaf_definition_32_32x400,
+    Leaf5 = local.leaf_definition_32_32x400,
+    Leaf6 = local.leaf_definition_32_32x400,
+    Leaf7 = local.leaf_definition_32_32x400,
+    Leaf8 = local.leaf_definition_32_32x400,
+  }
+  generic_systems = {
+    DGX-H100 = {
+      count             = 32
+      logical_device_id = apstra_logical_device.AI-Server-H100_8x400G.id
+      links = {
+        link1 = {
+          speed              = "400G"
+          target_switch_name = "Leaf1"  
+        },
+        link2 = {
+          speed              = "400G"
+          target_switch_name = "Leaf2"  
+        },
+        link3 = {
+          speed              = "400G"
+          target_switch_name = "Leaf3"  
+        },
+        link4 = {
+          speed              = "400G"
+          target_switch_name = "Leaf4"  
+        },
+        link5 = {
+          speed              = "400G"
+          target_switch_name = "Leaf5"  
+        },
+        link6 = {
+          speed              = "400G"
+          target_switch_name = "Leaf6"  
+        },
+        link7 = {
+          speed              = "400G"
+          target_switch_name = "Leaf7"  
+        },
+        link8 = {
+          speed              = "400G"
+          target_switch_name = "Leaf8"  
+        },
+      }
+    }
+  }
+}
