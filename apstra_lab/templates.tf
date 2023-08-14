@@ -11,19 +11,6 @@ resource "apstra_template_rack_based" "AI_Cluster_64_DGX-A100" {
   }
 }
 
-resource "apstra_template_rack_based" "AI_Cluster_32_DGX-H100" {
-  name                     = "AI Cluster 32 DGX-H100 (256 GPUs)"
-  asn_allocation_scheme    = "unique"
-  overlay_control_protocol = "static"
-  spine = {
-    count             = 8
-    logical_device_id = apstra_logical_device.AI-Spine_32x400.id
-  }
-  rack_infos = {
-    (apstra_rack_type.AI_16xH100.id)    = { count = 2 }
-  }
-}
-
 resource "apstra_template_rack_based" "AI_Cluster_64_DGX-H100" {
   name                     = "AI Cluster 64 DGX-H100 (512 GPUs)"
   asn_allocation_scheme    = "unique"
